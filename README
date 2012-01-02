@@ -1,6 +1,6 @@
-======================
-My Fork of Chronograph
-======================
+==============================
+My Forking Fork of Chronograph
+==============================
 
 So far, the change log includes:
  - A `last_run_sucessful` flag on the Job model
@@ -84,8 +84,8 @@ Using Chronograph
 =================
 
 If you've completed the above steps, you're all done.  Now you can add some jobs to the system.
-Remember, ``chronograph`` is designed to run any install ``django-admin`` management command and
-it accommodates command-line arguments as well.
+Remember, ``chronograph`` is designed to run any installed ``django-admin`` management command,
+including its command-line arguments.
 
 Cleaning Out Old Job Logs
 -------------------------

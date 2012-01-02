@@ -259,7 +259,7 @@ class Job(models.Model):
         return stdout_str, stderr_str
 
     def _get_exception_string(self, e, exc_info):
-        t = loader.get_template('chronograph/error_message.txt')
+        t = loader.get_template('chronograph/traceback.txt')
         c = Context({
                 'exception': unicode(e),
                 'traceback': ['\n'.join(traceback.format_exception(*exc_info))]
@@ -267,12 +267,11 @@ class Job(models.Model):
         return t.render(c)
 
 
-
-
 class Log(models.Model):
     """
-    A record of stdout and stderr of a ``Job``.
+    A record of stdout, stderr and success status of a ``Job`` run.
     """
+
     job = models.ForeignKey(Job)
     run_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True)
@@ -306,41 +305,26 @@ class Log(models.Model):
             }
 
         for user in subscriber_set:
-            subscribers.append('"%s" <%s>' % (user.get_full_name(), user.email))
+            if user.get_full_name():
+                subscribers.append('"%s" <%s>' % (user.get_full_name(), user.email))
+            else:
+                subscribers.append('"%s" <%s>' % (user.username, user.email))
 
-        message_body = """
-********************************************************************************
-JOB NAME: %(job_name)s
-RUN DATE: %(run_date)s
-END DATE: %(end_date)s
-SUCCESSFUL: %(success)s
-********************************************************************************
-""" % {
-    'job_name': self.job.name,
-    'run_date': self.run_date,
-    'end_date': self.end_date,
-    'success': self.success,
-}
-
-        if not self.success:
-            message_body += """
-********************************************************************************
-ERROR OUTPUT
-********************************************************************************
-%(error_output)s
-""" % {'error_output': self.stderr}
-
-        message_body += """
-********************************************************************************
-INFORMATIONAL OUTPUT
-********************************************************************************
-%(info_output)s
-""" % {'info_output': info_output}
+        ts = loader.get_template('chronograph/message_subject.txt')
+        tb = loader.get_template('chronograph/message_body.txt')
+        c = Context({
+            'log': self,
+            'info_output': info_output,
+            'error_output': self.stderr,
+            'EMAIL_SUBJECT_PREFIX': settings.EMAIL_SUBJECT_PREFIX,
+        })
+        message_subject = ts.render(c)
+        message_body = tb.render(c)
 
         send_mail(
-            from_email = '"%s" <%s>' % (settings.EMAIL_SENDER, settings.EMAIL_HOST_USER),
-            subject = '%s' % self,
+            from_email = settings.DEFAULT_FROM_EMAIL,
             recipient_list = subscribers,
+            subject = message_subject,
             message = message_body
         )
 

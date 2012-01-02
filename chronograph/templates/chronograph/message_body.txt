@@ -1,0 +1,11 @@
+***************************************************************************
+JOB NAME: {{ log.job.name }}
+RUN DATE: {{ log.run_date }}
+END DATE: {{ log.end_date }}
+SUCCESSFUL: {{ log.success }}
+***************************************************************************
+{% if not log.success %}
+{{ error_output|safe }}
+{% endif %}
+
+{{ info_output|safe }}

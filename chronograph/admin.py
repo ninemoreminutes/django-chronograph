@@ -134,7 +134,11 @@ class JobAdmin(admin.ModelAdmin):
         except Job.DoesNotExist:
             raise Http404
         job.run()
-        request.user.message_set.create(message=_('The job "%(job)s" was run successfully.') % {'job': job})
+        message = _('The job "%(job)s" was run successfully.') % {'job': job}
+        if hasattr(self, 'message_user'):
+            self.message_user(request, message)
+        else:
+            request.user.message_set.create(message=message)
 
         if 'inline' in request.GET:
             redirect = request.path + '../../'
