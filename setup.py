@@ -1,10 +1,12 @@
+#!/usr/bin/env python
+
 from setuptools import setup, find_packages
 
 app_name = 'django-chronograph'
 
 setup(
     name=app_name,
-    version='0.1.11-1',
+    version='0.1.11-2',
     description='Django chronograph application.',
     author='Weston Nielson',
     author_email='wnielson@gmail.com',
