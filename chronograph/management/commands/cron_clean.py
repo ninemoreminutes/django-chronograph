@@ -6,6 +6,10 @@ class Command( BaseCommand ):
     def handle( self, *args, **options ):
         from chronograph.models import Log
         from datetime import datetime, timedelta
+        try:
+            from django.utils.timezone import now
+        except ImportError:
+            now = datetime.now
         if len( args ) != 2:
             print 'Command requires two argument. Unit (weeks, days, hours or minutes) and interval.'
             return
@@ -20,5 +24,5 @@ class Command( BaseCommand ):
                 print 'Interval must be an integer.'
                 return
         kwargs = { unit: amount }
-        time_ago = datetime.now() - timedelta( **kwargs )
+        time_ago = now() - timedelta( **kwargs )
         Log.objects.filter( run_date__lte = time_ago ).delete()

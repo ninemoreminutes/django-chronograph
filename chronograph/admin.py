@@ -9,9 +9,12 @@ from django.utils.safestring import mark_safe
 from django.forms.util import flatatt
 from django.forms import Textarea
 from django.utils.html import escape
-from django.utils.text import capfirst
-from django.utils import dateformat, formats
 from django.template.defaultfilters import linebreaks
+try:
+    from django.contrib.admin.utils import display_for_field
+except ImportError:
+    from django.contrib.admin.util import display_for_field
+    
 
 from chronograph.models import Job, Log
 
@@ -91,11 +94,9 @@ class JobAdmin(admin.ModelAdmin):
         return queryset.update(is_running=False)
 
     def last_run_with_link(self, obj):
-        format = formats.get_format('DATETIME_FORMAT')
-        value = capfirst(dateformat.format(obj.last_run, format))
-
+        value = display_for_field(obj.last_run,
+                                  obj._meta.get_field_by_name('last_run')[0])
         log_id = obj.log_set.latest('run_date').id
-
         try:
             # Old way
             reversed_url = reverse('chronograph_log_change', args=(log_id,))
@@ -160,12 +161,13 @@ class LogAdmin(admin.ModelAdmin):
     date_hierarchy = 'run_date'
     fieldsets = (
         (None, {
-            'fields': ('job',)
+            'fields': ('job', 'run_date', 'end_date', 'job_duration', 'job_success',)
         }),
         (_('Output'), {
             'fields': ('stdout', 'stderr',)
         }),
     )
+    readonly_fields = ('job_duration', 'job_success', 'run_date', 'end_date')
 
     def job_duration(self, obj):
         return "%s" % (obj.get_duration())
