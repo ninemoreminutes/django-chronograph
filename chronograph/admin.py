@@ -43,6 +43,7 @@ class JobForm(forms.ModelForm):
             'shell_command': Textarea(attrs={'cols': 80, 'rows': 6}),
             'args': Textarea(attrs={'cols': 80, 'rows': 6}),
         }
+        exclude = []
 
     def clean_shell_command(self):
         if self.cleaned_data.get('command', '').strip() and \
