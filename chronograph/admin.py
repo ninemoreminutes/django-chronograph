@@ -1,9 +1,15 @@
+import django
 from django.contrib import admin
 from django.db import models
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.http import HttpResponseRedirect, Http404
-from django.conf.urls import patterns, url
+if django.VERSION < (1, 9):
+    from django.conf.urls import patterns, url
+else:
+    from django.conf.urls import url
+    def patterns(_, *urls):
+        return list(urls)
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 try:
