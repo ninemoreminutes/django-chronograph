@@ -36,12 +36,12 @@ class HTMLWidget(forms.Widget):
         if self.rel is not None:
             key = self.rel.get_related_field().name
             obj = self.rel.to._default_manager.get(**{key: value})
-            related_url = '../../../%s/%s/%d/' % (self.rel.to._meta.app_label, self.rel.to._meta.object_name.lower(), value)
+            related_url = '../../../%s/%d/' % (self.rel.to._meta.object_name.lower(), value)
             value = "<a href='%s'>%s</a>" % (related_url, escape(obj))
         else:
             value = escape(value)
 
-        final_attrs = self.build_attrs(attrs, name=name)
+        final_attrs = self.build_attrs(attrs, {'name': name})
         return mark_safe("<div%s>%s</div>" % (flatatt(final_attrs), linebreaks(value)))
 
 class JobForm(forms.ModelForm):
@@ -105,7 +105,8 @@ class JobAdmin(admin.ModelAdmin):
 
     def last_run_with_link(self, obj):
         value = display_for_field(obj.last_run,
-                                  obj._meta.get_field_by_name('last_run')[0])
+                                  obj._meta.get_field('last_run'),
+                                  '')
         log_id = obj.log_set.latest('run_date').id
         try:
             # Old way

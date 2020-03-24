@@ -5,7 +5,7 @@ import shlex
 
 from datetime import datetime
 from dateutil import rrule
-from StringIO import StringIO
+from io import StringIO
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -74,6 +74,9 @@ class Job(models.Model):
         if self.disabled:
             return _(u"%(name)s - disabled") % {'name': self.name}
         return u"%s - %s" % (self.name, self.timeuntil)
+
+    def __str__(self):
+        return self.__unicode__()
 
     def save(self, *args, **kwargs):
         if not self.disabled:
@@ -224,7 +227,7 @@ class Job(models.Model):
         try:
             call_command(self.command, *args, **options)
             successful = True
-        except Exception, e:
+        except Exception as e:
             exception_str = self._get_exception_string(e, sys.exc_info())
             successful = False
 
@@ -256,7 +259,7 @@ class Job(models.Model):
             if proc.returncode:
                 stderr_str += "\n\n*** Process ended with return code %d\n\n" % proc.returncode
             successful = not proc.returncode
-        except Exception, e:
+        except Exception as e:
             stderr_str += self._get_exception_string(e, sys.exc_info())
             successful = False
 
@@ -264,10 +267,10 @@ class Job(models.Model):
 
     def _get_exception_string(self, e, exc_info):
         t = loader.get_template('chronograph/traceback.txt')
-        c = Context({
-                'exception': unicode(e),
+        c = {
+                'exception': str(e),
                 'traceback': ['\n'.join(traceback.format_exception(*exc_info))]
-                })
+            }
         return t.render(c)
 
 
@@ -288,6 +291,9 @@ class Log(models.Model):
 
     def __unicode__(self):
         return u"%s" % self.job.name
+
+    def __str__(self):
+        return self.__unicode__()
 
     def get_duration(self):
         if self.end_date:
@@ -316,12 +322,12 @@ class Log(models.Model):
 
         ts = loader.get_template('chronograph/message_subject.txt')
         tb = loader.get_template('chronograph/message_body.txt')
-        c = Context({
+        c = {
             'log': self,
             'info_output': info_output,
             'error_output': self.stderr,
             'EMAIL_SUBJECT_PREFIX': settings.EMAIL_SUBJECT_PREFIX,
-        })
+        }
         message_subject = ts.render(c)
         message_body = tb.render(c)
 
