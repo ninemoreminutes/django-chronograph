@@ -1,28 +1,32 @@
+# Python
+import datetime
+
+# Django
 from django.core.management.base import BaseCommand
+from django.utils import timezone
+
+# Chronograph
+from chronograph.models import Log
+
 
 class Command( BaseCommand ):
+
     help = 'Deletes old job logs.'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            'unit',
+            choices=('weeks', 'days', 'hours', 'minutes'),
+            help='Unit of time to clean.',
+        )
+        parser.add_argument(
+            'amount',
+            type=int,
+            help='Amount of the given unit.',
+        )
     
-    def handle( self, *args, **options ):
-        from chronograph.models import Log
-        from datetime import datetime, timedelta
-        try:
-            from django.utils.timezone import now
-        except ImportError:
-            now = datetime.now
-        if len( args ) != 2:
-            print 'Command requires two argument. Unit (weeks, days, hours or minutes) and interval.'
-            return
-        else:
-            unit = str( args[ 0 ] )
-            if unit not in [ 'weeks', 'days', 'hours', 'minutes' ]:
-                print 'Valid units are weeks, days, hours or minutes.'
-                return
-            try:
-                amount = int( args[ 1 ] ) 
-            except ValueError:
-                print 'Interval must be an integer.'
-                return
-        kwargs = { unit: amount }
-        time_ago = now() - timedelta( **kwargs )
-        Log.objects.filter( run_date__lte = time_ago ).delete()
+    def handle(self, *args, **options):
+        unit = options.get('unit')
+        amount = options.get('amount')
+        time_ago = timezone.now() - datetime.timedelta(**{unit: amount})
+        Log.objects.filter(run_date__lte=time_ago).delete()
