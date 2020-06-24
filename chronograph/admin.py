@@ -10,7 +10,10 @@ else:
     from django.conf.urls import url
     def patterns(_, *urls):
         return list(urls)
-from django.core.urlresolvers import reverse
+try:
+    from django.core.urlresolvers import reverse
+except ImportError:
+    from django.urls import reverse
 from django.utils.safestring import mark_safe
 try:
     from django.forms.utils import flatatt

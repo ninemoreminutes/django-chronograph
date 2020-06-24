@@ -11,7 +11,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.core.mail import send_mail
-from django.core.urlresolvers import reverse
+try:
+    from django.core.urlresolvers import reverse
+except ImportError:
+    from django.urls import reverse
 from django.utils.timesince import timeuntil
 from django.utils.translation import ungettext, ugettext, ugettext_lazy as _
 from django.template import loader, Context
@@ -279,7 +282,7 @@ class Log(models.Model):
     A record of stdout, stderr and success status of a ``Job`` run.
     """
 
-    job = models.ForeignKey(Job)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE)
     run_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True)
     stdout = models.TextField(blank=True)
