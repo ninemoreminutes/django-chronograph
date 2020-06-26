@@ -15,13 +15,7 @@ try:
 except ImportError:
     from django.urls import reverse
 from django.utils.safestring import mark_safe
-try:
-    from django.forms.utils import flatatt
-except ImportError:
-    from django.forms.util import flatatt
-from django.forms import Textarea
-from django.utils.html import escape
-from django.template.defaultfilters import linebreaks
+from django.utils.html import escape, format_html, linebreaks
 try:
     from django.contrib.admin.utils import display_for_field
 except ImportError:
@@ -30,30 +24,14 @@ except ImportError:
 
 from chronograph.models import Job, Log
 
-class HTMLWidget(forms.Widget):
-    def __init__(self,rel=None, attrs=None):
-        self.rel = rel
-        super(HTMLWidget, self).__init__(attrs)
-
-    def render(self, name, value, attrs=None):
-        if self.rel is not None:
-            key = self.rel.get_related_field().name
-            obj = self.rel.to._default_manager.get(**{key: value})
-            related_url = '../../../%s/%d/' % (self.rel.to._meta.object_name.lower(), value)
-            value = "<a href='%s'>%s</a>" % (related_url, escape(obj))
-        else:
-            value = escape(value)
-
-        final_attrs = self.build_attrs(attrs, {'name': name})
-        return mark_safe("<div%s>%s</div>" % (flatatt(final_attrs), linebreaks(value)))
 
 class JobForm(forms.ModelForm):
     class Meta:
         model = Job
         widgets = {
-            'command': Textarea(attrs={'cols': 80, 'rows': 6}),
-            'shell_command': Textarea(attrs={'cols': 80, 'rows': 6}),
-            'args': Textarea(attrs={'cols': 80, 'rows': 6}),
+            'command': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
+            'shell_command': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
+            'args': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
         }
         exclude = []
 
@@ -71,6 +49,7 @@ class JobForm(forms.ModelForm):
             raise forms.ValidationError(_("Must specify either command or "
                                         "shell command"))
         return cleaned_data
+
 
 class JobAdmin(admin.ModelAdmin):
     actions = ['disable_jobs', 'reset_jobs']
@@ -169,19 +148,25 @@ class JobAdmin(admin.ModelAdmin):
         )
         return my_urls + urls
 
+
 class LogAdmin(admin.ModelAdmin):
     list_display = ('job_name', 'run_date', 'end_date', 'job_duration', 'job_success', 'output', 'errors', )
     search_fields = ('stdout', 'stderr', 'job__name', 'job__command')
     date_hierarchy = 'run_date'
     fieldsets = (
         (None, {
-            'fields': ('job', 'run_date', 'end_date', 'job_duration', 'job_success',)
+            'fields': ('job_display', 'run_date', 'end_date', 'job_duration', 'job_success',)
         }),
         (_('Output'), {
-            'fields': ('stdout', 'stderr',)
+            'fields': ('stdout_display', 'stderr_display',)
         }),
     )
-    readonly_fields = ('job_duration', 'job_success', 'run_date', 'end_date')
+    readonly_fields = ('job_display', 'job_duration', 'job_success', 'run_date', 'end_date', 'stdout_display', 'stderr_display')
+
+    def job_display(self, obj):
+        related_url = reverse('admin:chronograph_job_change', args=(obj.pk,))
+        return format_html('<a href="{0}">{1}</a>', related_url, obj)
+    job_display.short_description = _('Job')
 
     def job_duration(self, obj):
         return "%s" % (obj.get_duration())
@@ -196,10 +181,19 @@ class LogAdmin(admin.ModelAdmin):
     job_success.short_description = _(u'OK')
     job_success.boolean = True
 
+    def stdout_display(self, obj):
+        return mark_safe('<div>{}</div>'.format(linebreaks(obj.stdout, autoescape=True)))
+    stdout_display.short_description = _('Stdout')
+
+    def stderr_display(self, obj):
+        return mark_safe('<div>{}</div>'.format(linebreaks(obj.stderr, autoescape=True)))
+    stderr_display.short_description = _('Stderr')
+
     def output(self, obj):
         result = obj.stdout or ''
         if len(result) > 40:
             result = result[:40] + '...'
+        result = escape(result)
 
         return result or _('(No output)')
 
@@ -207,24 +201,13 @@ class LogAdmin(admin.ModelAdmin):
         result = obj.stderr or ''
         if len(result) > 40:
             result = result[:40] + '...'
+        result = escape(result)
 
         return result or _('(No errors)')
 
     def has_add_permission(self, request):
         return False
 
-    def formfield_for_dbfield(self, db_field, **kwargs):
-        request = kwargs.pop("request", None)
-
-        if isinstance(db_field, models.TextField):
-            kwargs['widget'] = HTMLWidget()
-            return db_field.formfield(**kwargs)
-
-        if isinstance(db_field, models.ForeignKey):
-            kwargs['widget'] = HTMLWidget(db_field.rel)
-            return db_field.formfield(**kwargs)
-
-        return super(LogAdmin, self).formfield_for_dbfield(db_field, **kwargs)
 
 admin.site.register(Job, JobAdmin)
 admin.site.register(Log, LogAdmin)
